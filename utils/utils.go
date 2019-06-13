@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"github.com/commercionetwork/chain-installer/types"
+	"os"
 	"strings"
 )
 
@@ -10,6 +11,12 @@ func CheckError(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func GetUserHome() string {
+	home, err := os.UserHomeDir()
+	CheckError(err)
+	return home
 }
 
 func ReplaceLast(original, old, replace string) string {
@@ -24,7 +31,7 @@ func ReplaceLast(original, old, replace string) string {
 
 // === Contents ===
 
-func FilterContent(items []types.RepoContent, test func (types.RepoContent) bool) (ret []types.RepoContent) {
+func FilterContent(items []types.RepoContent, test func(types.RepoContent) bool) (ret []types.RepoContent) {
 	for _, item := range items {
 		if test(item) {
 			ret = append(ret, item)
@@ -33,13 +40,12 @@ func FilterContent(items []types.RepoContent, test func (types.RepoContent) bool
 	return
 }
 
-func MapContent(items []types.RepoContent, mapper func (content types.RepoContent) string) (ret []string) {
+func MapContent(items []types.RepoContent, mapper func(content types.RepoContent) string) (ret []string) {
 	for _, item := range items {
 		ret = append(ret, mapper(item))
 	}
 	return
 }
-
 
 // === Releases ===
 

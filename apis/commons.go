@@ -17,7 +17,7 @@ func getUrl(url string) io.ReadCloser {
 }
 
 // getUrlContentsAsString allows to perform a GET request to the given url and return the server answer as a string.
-func getUrlContentsAsString(url string) string {
+func GetUrlContentsAsString(url string) string {
 	responseBody := getUrl(url)
 	contents, err := ioutil.ReadAll(responseBody)
 	utils.CheckError(err)
@@ -26,7 +26,7 @@ func getUrlContentsAsString(url string) string {
 
 // getUrlContents performs a GET request to the given url and later parses the response and puts it into the destination
 // interface
-func getUrlContents(url string, destination interface{}) {
+func GetUrlContents(url string, destination interface{}) {
 	responseBody := getUrl(url)
 	err := json.NewDecoder(responseBody).Decode(&destination)
 	utils.CheckError(err)
