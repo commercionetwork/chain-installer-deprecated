@@ -28,7 +28,7 @@ func main() {
 	// Download the genesis file inside the proper dir
 	apis.DownloadGenesisFile(chainId, installationDir)
 
-	// Ask the user to start the cnd or not
+	// Ask the user to start the node or not
 	if askStartCnd() {
 		cmd := exec.Command(installationDir+"/cnd", "start")
 		cmd.Stdout = os.Stdout
@@ -38,6 +38,8 @@ func main() {
 	}
 }
 
+// getChainId allows us to ask the user which chain he would like to install from the different chains available.
+// Once the user has selected the chain, the selected id is returned.
 func getChainId() string {
 	chains := apis.GetChainsVersions()
 
@@ -55,6 +57,8 @@ func getChainId() string {
 	return chain
 }
 
+// getInstallationDirectory asks the user where to install al the executable files and returns the prompted
+// installation path.
 func getInstallationDirectory() string {
 
 	dirPrompt := promptui.Prompt{
@@ -76,6 +80,8 @@ func getInstallationDirectory() string {
 	return directory
 }
 
+// askStartCnd asks the user if he wants to start the installed full node or not, and returns a boolean indicating the
+// chosen option
 func askStartCnd() bool {
 	chainPrompt := promptui.Select{
 		Label: "Do you wish to start your node now?",
