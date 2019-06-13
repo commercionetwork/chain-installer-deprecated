@@ -6,6 +6,7 @@ import (
 	"github.com/commercionetwork/chain-installer/apis"
 	"github.com/commercionetwork/chain-installer/utils"
 	"github.com/manifoldco/promptui"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -19,6 +20,7 @@ func main() {
 
 	// Ask the user where to install the things
 	installationDir := getInstallationDirectory()
+	installationDir = utils.ReplaceLast(installationDir, "/", "")
 
 	// Download the executable for the given chain id inside the given directory
 	apis.DownloadChainExecutable(chainId, installationDir)
@@ -28,15 +30,11 @@ func main() {
 
 	// Ask the user to start the cnd or not
 	if askStartCnd() {
-		out, err := exec.Command(installationDir + "/cnd", "start").StdoutPipe()
-		buff := make([]byte,10)
-		var n int
-		for err == nil {
-			n,err = out.Read(buff)
-			if n > 0{
-				fmt.Printf("taken %d chars %s",n,string(buff[:n]))
-			}
-		}
+		cmd := exec.Command(installationDir+"/cnd", "start")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		utils.CheckError(err)
 	}
 }
 
@@ -81,7 +79,7 @@ func getInstallationDirectory() string {
 func askStartCnd() bool {
 	chainPrompt := promptui.Select{
 		Label: "Do you wish to start your node now?",
-		Items: []string { "Yes", "No" },
+		Items: []string{"Yes", "No"},
 	}
 
 	_, answer, err := chainPrompt.Run()

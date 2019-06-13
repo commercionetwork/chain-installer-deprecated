@@ -36,7 +36,7 @@ func getUrlContents(url string, destination interface{}) {
 
 func GetChainsVersions() []string {
 
-	var content [] types.RepoContent
+	var content []types.RepoContent
 	getUrlContents("https://api.github.com/repos/commercionetwork/chains/contents", &content)
 
 	// Filter all the items that are a directory and have the name starting with
@@ -51,20 +51,16 @@ func GetChainsVersions() []string {
 	return chains
 }
 
-
 func DownloadChainExecutable(chainId string, installationDir string) {
 
 	fmt.Println("===> Downloading the chain executable <===")
-
-	installationDir = utils.ReplaceLast(installationDir, "/", "")
 
 	// Get the contents of the specific chain folder
 	tagFolder := fmt.Sprintf("https://api.github.com/repos/commercionetwork/chains/contents/%s", chainId)
 
 	// Get the data of the file containing the release version
 	var releaseVersion types.FileData
-	getUrlContents(tagFolder + "/.release", &releaseVersion)
-
+	getUrlContents(tagFolder+"/.release", &releaseVersion)
 
 	// === STEP 1 ===
 	fmt.Println("\n ====> Step 1 - Obtain the info <====")
@@ -88,7 +84,6 @@ func DownloadChainExecutable(chainId string, installationDir string) {
 	asset := utils.FindReleaseAssetByName(release.Assets, zipName)
 	fmt.Println(fmt.Sprintf("Asset with name %s found!", zipName))
 
-
 	// === STEP 2 ===
 	fmt.Println("\n ====> Step 2 - Downloading the files <====")
 
@@ -98,7 +93,6 @@ func DownloadChainExecutable(chainId string, installationDir string) {
 	err := DownloadFile(downloadPath, asset.DownloadUrl)
 	utils.CheckError(err)
 	fmt.Println(fmt.Sprintf("%s successfully downloaded", zipName))
-
 
 	// === STEP 3 ===
 	fmt.Println("\n ====> Step 3 - Unzipping and setup <====")
@@ -114,14 +108,13 @@ func DownloadChainExecutable(chainId string, installationDir string) {
 
 	// Move the cncli
 	fmt.Println(fmt.Sprintf("Moving cncli into %s", installationDir))
-	err = os.Rename(downloadedFolderPath + "/cncli", installationDir + "/cncli")
+	err = os.Rename(downloadedFolderPath+"/cncli", installationDir+"/cncli")
 	utils.CheckError(err)
 
 	// Move the cnd
 	fmt.Println(fmt.Sprintf("Moving cnd into %s", installationDir))
-	err = os.Rename(downloadedFolderPath + "/cnd", installationDir + "/cnd")
+	err = os.Rename(downloadedFolderPath+"/cnd", installationDir+"/cnd")
 	utils.CheckError(err)
-
 
 	// === STEP 4 ===
 	fmt.Println("\n ====> Step 4 - Cleanup <====")
@@ -134,15 +127,12 @@ func DownloadChainExecutable(chainId string, installationDir string) {
 	err = os.Remove(downloadedFolderPath)
 	utils.CheckError(err)
 
-
 	// === STEP 5 ===
 	fmt.Println("====> Step 5 - End <====")
 	fmt.Println("Executable downloaded successfully!")
 }
 
 func DownloadGenesisFile(chainId, installationDir string) {
-
-	installationDir = utils.ReplaceLast(installationDir, "/", "")
 
 	// Get the user home
 	home, err := os.UserHomeDir()
@@ -170,9 +160,8 @@ func DownloadGenesisFile(chainId, installationDir string) {
 
 	// Get the data of the file containing the genesis information
 	var genesisData types.FileData
-	getUrlContents(tagFolder + "/genesis.json", &genesisData)
+	getUrlContents(tagFolder+"/genesis.json", &genesisData)
 	fmt.Println("Genesis file info read successfully!")
-
 
 	// === STEP 2 ===
 	fmt.Println("\n ====> Step 2 - Downloading the genesis file <====")
@@ -198,7 +187,7 @@ func DownloadGenesisFile(chainId, installationDir string) {
 
 	// Get the seeds
 	var seedsData types.FileData
-	getUrlContents(tagFolder + "/.seeds", &seedsData)
+	getUrlContents(tagFolder+"/.seeds", &seedsData)
 	seeds := getUrlContentsAsString(seedsData.DownloadUrl)
 	fmt.Println("Seeds downloaded successfully! ")
 
@@ -211,7 +200,14 @@ func DownloadGenesisFile(chainId, installationDir string) {
 	// Replace the seeds inside the config.toml file
 	seedsValue := fmt.Sprintf("seeds = \"%s\"", seeds)
 	configContentsWithSeeds := strings.ReplaceAll(string(configContents), "seeds = \"\"", seedsValue)
-	err = ioutil.WriteFile(configTomlFile, []byte(configContentsWithSeeds), os.ModePerm)
+
+	// Replace the persistent peers inside the config.toml file
+	// TODO - Remove this when the seed node will be successfully setup
+	persistentPeers := "persistent_peers = \"337aae4a3976ad9fd28c051330d2eee58c721c23@3.121.145.63:26656,195486770d8de78846589ab288c1f2224e8429d6@52.29.124.231:26656,26c17a2102f5337aac02067559a3390ca73c6c42@3.122.146.155:26656\""
+	configContentsWithPeers := strings.ReplaceAll(configContentsWithSeeds, "persistent_peers = \"\"", persistentPeers)
+
+	// Write the contents back into the file
+	err = ioutil.WriteFile(configTomlFile, []byte(configContentsWithPeers), os.ModePerm)
 	utils.CheckError(err)
 	fmt.Println("Config.toml updated successfully")
 }
