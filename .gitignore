@@ -4,3 +4,4 @@ cncli
 cnd
 main
 *.iml
+build/
