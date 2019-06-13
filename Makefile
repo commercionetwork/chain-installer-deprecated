@@ -23,7 +23,7 @@ build-linux:
 
 build-windows:
 	env GO111MODULE=on GOOS=windows GOARCH=386 go build -o ./build/windows/commercio-network-chain-installer-windows-386
-	env GO111MODULE=on GOOS=windows GOARCH=amd64 go build -o ./build/linux/commercio-network-chain-installer-windows-amd64
+	env GO111MODULE=on GOOS=windows GOARCH=amd64 go build -o ./build/windows/commercio-network-chain-installer-windows-amd64
 
 build-all:
 	make build-darwin
