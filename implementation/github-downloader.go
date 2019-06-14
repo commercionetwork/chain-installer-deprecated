@@ -8,8 +8,6 @@ import (
 	"github.com/commercionetwork/chain-installer/apis"
 	"github.com/commercionetwork/chain-installer/types"
 	"github.com/commercionetwork/chain-installer/utils"
-	"io"
-	"strings"
 )
 
 type GithubBasedDownloader struct {
@@ -60,10 +58,6 @@ func (downloader GithubBasedDownloader) DownloadGenesisFile(info types.ChainInfo
 	genesisContents := apis.GetUrlContentsAsString(genesisData.DownloadUrl)
 
 	// Check the validity of the contents
-	hash := sha2562.New()
-	_, err := io.Copy(hash, strings.NewReader(genesisContents))
-	utils.CheckError(err)
-
 	sha256 := sha2562.Sum256([]byte(genesisContents))
 	hexString := hex.EncodeToString(sha256[:])
 

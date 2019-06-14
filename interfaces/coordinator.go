@@ -85,12 +85,22 @@ func (coordinator Coordinator) setupConfigTomlFile(info types.ChainInfo) {
 	configContents, err := ioutil.ReadFile(configTomlFilePath)
 	utils.CheckError(err)
 
-	// Replace the seeds inside the config.toml file
-	seedsValue := fmt.Sprintf("seeds = \"%s\"", info.Seeds)
-	configContentsWithSeeds := strings.ReplaceAll(string(configContents), "seeds = \"\"", seedsValue)
+	var finalConfig = string(configContents)
+
+	// Replace the seeds inside the config.toml file if they exist
+	if len(info.Seeds) > 0 {
+		seedsValue := fmt.Sprintf("seeds = \"%s\"", info.Seeds)
+		finalConfig = strings.ReplaceAll(finalConfig, "seeds = \"\"", seedsValue)
+	}
+
+	// Replace the persistent peers inside the config.toml if they exist
+	if len(info.PersistentPeers) > 0 {
+		persistentPeersValue := fmt.Sprintf("persistent_peers = \"%s\"", info.PersistentPeers)
+		finalConfig = strings.ReplaceAll(finalConfig, "persistent_peers = \"\"", persistentPeersValue)
+	}
 
 	// Write the contents back into the file
-	err = ioutil.WriteFile(configTomlFilePath, []byte(configContentsWithSeeds), os.ModePerm)
+	err = ioutil.WriteFile(configTomlFilePath, []byte(finalConfig), os.ModePerm)
 	utils.CheckError(err)
 
 	fmt.Println("Config.toml updated successfully")

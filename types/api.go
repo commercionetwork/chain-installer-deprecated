@@ -35,6 +35,7 @@ type ChainInfo struct {
 	ChainName       string
 	ReleaseTag      string
 	Seeds           string
+	PersistentPeers string
 	GenesisChecksum string
 }
 
@@ -48,8 +49,8 @@ func (info ChainInfo) CheckValidity() error {
 		return errors.New("empty release name")
 	}
 
-	if len(info.Seeds) == 0 {
-		return errors.New("empty seeds")
+	if len(info.Seeds) == 0 && len(info.PersistentPeers) == 0 {
+		return errors.New("at least one between the seeds and persistent peers should be set")
 	}
 
 	if len(info.GenesisChecksum) == 0 {

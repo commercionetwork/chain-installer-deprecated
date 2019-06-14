@@ -31,6 +31,8 @@ func (downloader GithubBasedDownloader) readDataFileLines(contents string) types
 				chainInfo.ReleaseTag = value
 			} else if contains(parts[0], "seeds") {
 				chainInfo.Seeds = value
+			} else if contains(parts[0], "persistent") && contains(parts[0], "peers") {
+				chainInfo.PersistentPeers = value
 			} else if contains(parts[0], "genesis") && contains(parts[0], "checksum") {
 				chainInfo.GenesisChecksum = value
 			}
