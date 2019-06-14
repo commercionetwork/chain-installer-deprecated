@@ -3,32 +3,80 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/commercionetwork/chain-installer/apis"
+	"github.com/commercionetwork/chain-installer/implementation"
+	"github.com/commercionetwork/chain-installer/interfaces"
+	"github.com/commercionetwork/chain-installer/types"
 	"github.com/commercionetwork/chain-installer/utils"
 	"github.com/manifoldco/promptui"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
 func main() {
 
-	fmt.Print("Welcome to the Commercio.network chain installer")
+	// =========================
+	// === Build the ApiInfo ===
 
-	// Ask the user to select a chain id
-	chainId := getChainId()
+	apiInfo := types.ApiInfo{
+		ExecutablesRepository: types.ExecutablesRepoInfo{
+			User:     "commercionetwork",
+			RepoName: "commercionetwork",
+		},
+		ChainsRepository: types.ChainsRepoInfo{
+			User:                 "commercionetwork",
+			RepoName:             "chains",
+			ValidChainNamePrefix: "commercio-",
+		},
+	}
 
-	// Ask the user where to install the things
+	// =========================================
+	// === Ask the user to select a chain id ===
+
+	explorer := implementation.GithubVersionsExplorer{
+		ApiInfo: apiInfo,
+	}
+	chainId := getChainId(explorer)
+
+	// === Ask the user where to install the things ===
 	installationDir := getInstallationDirectory()
-	installationDir = utils.ReplaceLast(installationDir, "/", "")
 
-	// Download the executable for the given chain id inside the given directory
-	apis.DownloadChainExecutable(chainId, installationDir)
+	// Get the absolute path to the installation dir
+	installationDir, err := filepath.Abs(installationDir)
+	utils.CheckError(err)
 
-	// Download the genesis file inside the proper dir
-	apis.DownloadGenesisFile(chainId, installationDir)
+	// Create the installation dir if it does not exist
+	err = os.MkdirAll(installationDir, os.ModePerm)
+	utils.CheckError(err)
 
-	// Ask the user to start the node or not
+	// =============================
+	// === Build the coordinator ===
+
+	application := types.Application{
+		DaemonName: "cnd",
+	}
+
+	coordinator := interfaces.Coordinator{
+		InstallationDir: installationDir,
+		ChainName:       chainId,
+		Application:     application,
+		Downloader: implementation.GithubBasedDownloader{
+			InstallationDir: installationDir,
+			Application:     application,
+			ApiInfo:         apiInfo,
+		},
+	}
+
+	// =========================
+	// === Download the data ===
+
+	coordinator.PerformChainDownloadAndSetup()
+	fmt.Println(fmt.Sprintf("Software installed into %s", installationDir))
+
+	// =============================================
+	// === Ask the user to start the node or not ===
+
 	if askStartCnd() {
 		cmd := exec.Command(installationDir+"/cnd", "start")
 		cmd.Stdout = os.Stdout
@@ -40,15 +88,13 @@ func main() {
 
 // getChainId allows us to ask the user which chain he would like to install from the different chains available.
 // Once the user has selected the chain, the selected id is returned.
-func getChainId() string {
-	chains := apis.GetChainsVersions()
-
+func getChainId(versionsExplorer interfaces.VersionsExplorer) string {
 	chainPrompt := promptui.Select{
 		Label: "Select the chain version you wish to install",
 		Templates: &promptui.SelectTemplates{
 			Selected: "Chain to be installed: {{ . }}",
 		},
-		Items: chains,
+		Items: versionsExplorer.ListChainNames(),
 	}
 
 	_, chain, err := chainPrompt.Run()

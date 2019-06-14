@@ -1,17 +1,28 @@
 package utils
 
 import (
-	"errors"
-	"github.com/commercionetwork/chain-installer/types"
+	"fmt"
+	"os"
 	"strings"
 )
 
+// CheckError correctly displays the given error to the user, and exits the program with non-zero code
 func CheckError(err error) {
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		os.Exit(0)
 	}
 }
 
+// GetUserHome allow to return the string representing the path to the user home directory
+func GetUserHome() string {
+	home, err := os.UserHomeDir()
+	CheckError(err)
+	return home
+}
+
+// ReplaceLast returns the `original` string having the last occurrence of the specified `old` string replaced with the
+// specified `replace` string
 func ReplaceLast(original, old, replace string) string {
 	i := strings.LastIndex(original, old)
 
@@ -20,63 +31,4 @@ func ReplaceLast(original, old, replace string) string {
 	} else {
 		return original
 	}
-}
-
-// === Contents ===
-
-func FilterContent(items []types.RepoContent, test func (types.RepoContent) bool) (ret []types.RepoContent) {
-	for _, item := range items {
-		if test(item) {
-			ret = append(ret, item)
-		}
-	}
-	return
-}
-
-func MapContent(items []types.RepoContent, mapper func (content types.RepoContent) string) (ret []string) {
-	for _, item := range items {
-		ret = append(ret, mapper(item))
-	}
-	return
-}
-
-
-// === Releases ===
-
-func FindReleaseByTagName(items []types.Release, tagName string) types.Release {
-	var release types.Release
-
-	found := false
-	for _, item := range items {
-		if item.TagName == tagName {
-			release = item
-			found = true
-		}
-	}
-
-	if !found {
-		CheckError(errors.New("item not found"))
-	}
-
-	return release
-}
-
-// === Assets ===
-
-func FindReleaseAssetByName(items []types.Asset, name string) types.Asset {
-	var asset types.Asset
-	found := false
-
-	for _, item := range items {
-		if strings.EqualFold(item.Name, name) {
-			asset = item
-			found = true
-		}
-	}
-
-	if !found {
-		CheckError(errors.New("item not found"))
-	}
-
-	return asset
 }
