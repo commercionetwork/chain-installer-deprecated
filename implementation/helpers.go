@@ -50,14 +50,10 @@ func contains(original, search string) bool {
 	return strings.Contains(strings.ToLower(original), strings.ToLower(search))
 }
 
-func (downloader GithubBasedDownloader) getAssetsInfo(releaseVersion types.FileData) (string, types.Asset) {
-	fmt.Println("====> Getting the .release file")
-
-	// Get the .release and the genesis.json files contents
-	tagName := apis.GetUrlContentsAsString(releaseVersion.DownloadUrl)
+func (downloader GithubBasedDownloader) getAssetsInfo(releaseVersion string) (string, types.Asset) {
 
 	// Get all the releases and find the one having the given tag name
-	fmt.Println(fmt.Sprintf("====> Searching the release with tag name %s", tagName))
+	fmt.Println(fmt.Sprintf("====> Searching the release with tag name %s", releaseVersion))
 
 	// Get the release API URL
 	releaseApiPath := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases",
@@ -69,11 +65,11 @@ func (downloader GithubBasedDownloader) getAssetsInfo(releaseVersion types.FileD
 	apis.GetUrlContents(releaseApiPath, &releases)
 
 	// Find the release with the given tag name
-	release := releases.FindByTagName(tagName)
+	release := releases.FindByTagName(releaseVersion)
 
 	// Get the asset representing the zip file inside which there are the executables for the given OS and Architecture
 	zipName := fmt.Sprintf("%s-%s.zip", runtime.GOOS, runtime.GOARCH)
-	fmt.Println(fmt.Sprintf("====> Searching the asset with name %s inside release %s", zipName, tagName))
+	fmt.Println(fmt.Sprintf("====> Searching the asset with name %s inside release %s", zipName, releaseVersion))
 
 	asset := release.Assets.FindByName(zipName)
 

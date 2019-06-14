@@ -73,14 +73,8 @@ func (downloader GithubBasedDownloader) DownloadGenesisFile(info types.ChainInfo
 func (downloader GithubBasedDownloader) DownloadExecutable(info types.ChainInfo, installationDir string) {
 	fmt.Println("===> Downloading the chain executable")
 
-	// Get the release version information
-	releaseFileRemotePath := fmt.Sprintf("%s/.release", downloader.getReleaseFolder(info.ChainName))
-
-	var releaseVersion types.FileData
-	apis.GetUrlContents(releaseFileRemotePath, &releaseVersion)
-
 	// === STEP 1 ===
-	zipName, asset := downloader.getAssetsInfo(releaseVersion)
+	zipName, asset := downloader.getAssetsInfo(info.ReleaseTag)
 
 	// === STEP 2 ===
 	downloadPath := downloader.downloadFiles(asset, zipName)
