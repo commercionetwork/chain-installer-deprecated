@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/commercionetwork/chain-installer/apis"
 	"github.com/commercionetwork/chain-installer/types"
-	"github.com/commercionetwork/chain-installer/utils"
 	"strings"
 )
 
@@ -20,15 +19,15 @@ func (explorer GithubVersionsExplorer) ListChainNames() []string {
 		explorer.ApiInfo.ChainsRepository.User,
 		explorer.ApiInfo.ChainsRepository.RepoName)
 
-	var content []types.RepoContent
+	var content types.RepoContents
 	apis.GetUrlContents(chainApiUrl, &content)
 
 	// Filter all the items that are a directory and have the name starting with
-	folders := utils.FilterContent(content, func(c types.RepoContent) bool {
+	folders := content.Filter(func(c types.RepoContent) bool {
 		return c.Type == "dir" && strings.HasPrefix(c.Name, explorer.ApiInfo.ChainsRepository.ValidChainNamePrefix)
 	})
 
-	chains := utils.MapContent(folders, func(content types.RepoContent) string {
+	chains := folders.Map(func(content types.RepoContent) string {
 		return content.Name
 	})
 

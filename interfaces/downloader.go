@@ -1,13 +1,15 @@
 package interfaces
 
+import "github.com/commercionetwork/chain-installer/types"
+
 type Downloader interface {
 
+	// Returns the information about the chain having the given chainName
+	GetChainInfo(chainName string) types.ChainInfo
+
 	// Downloads the genesis file for the given chain name and returns its content
-	DownloadGenesisFile(chainName string) string
+	DownloadGenesisFile(info types.ChainInfo) string
 
 	// Downloads the executables for the given chain name inside the specified directory
-	DownloadExecutable(chainName string, installationDir string)
-
-	// Returns the list of seed nodes that should be put inside the config.toml file for the given chain name
-	GetSeeds(chainName string) string
+	DownloadExecutable(info types.ChainInfo, installationDir string)
 }

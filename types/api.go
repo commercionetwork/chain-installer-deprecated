@@ -1,5 +1,9 @@
 package types
 
+import (
+	"errors"
+)
+
 // Represents the Github repository inside which all the different chains versions data are hosted.
 // The repo should have a series of folders all starting with the specified ValidChainNamePrefix, inside which
 // there should be:
@@ -24,4 +28,33 @@ type ExecutablesRepoInfo struct {
 type ApiInfo struct {
 	ChainsRepository      ChainsRepoInfo
 	ExecutablesRepository ExecutablesRepoInfo
+}
+
+// Contains the information about the chain that needs to be installed
+type ChainInfo struct {
+	ChainName       string
+	ReleaseTag      string
+	Seeds           string
+	GenesisChecksum string
+}
+
+func (info ChainInfo) CheckValidity() error {
+
+	if len(info.ChainName) == 0 {
+		return errors.New("empty chain name")
+	}
+
+	if len(info.ReleaseTag) == 0 {
+		return errors.New("empty release name")
+	}
+
+	if len(info.Seeds) == 0 {
+		return errors.New("empty seeds")
+	}
+
+	if len(info.GenesisChecksum) == 0 {
+		return errors.New("empty genesis checksum")
+	}
+
+	return nil
 }

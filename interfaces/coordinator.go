@@ -21,25 +21,23 @@ type Coordinator struct {
 // Downloads all the necessary chain files and setups everything so that it can work properly
 func (coordinator Coordinator) PerformChainDownloadAndSetup() {
 
+	chainInfo := coordinator.Downloader.GetChainInfo(coordinator.ChainName)
+
 	// Download the executables inside the installation dir
-	coordinator.downloadExecutables()
+	coordinator.Downloader.DownloadExecutable(chainInfo, coordinator.InstallationDir)
 
 	// Reset the daemon folder
 	coordinator.resetDaemonFolder()
 
 	// Download the new genesis file
-	coordinator.downloadGenesisFile()
+	coordinator.downloadGenesisFile(chainInfo)
 
 	// Setup the config.toml file
-	coordinator.setupConfigTomlFile()
+	coordinator.setupConfigTomlFile(chainInfo)
 }
 
-func (coordinator Coordinator) downloadExecutables() {
-	coordinator.Downloader.DownloadExecutable(coordinator.ChainName, coordinator.InstallationDir)
-}
-
-func (coordinator Coordinator) downloadGenesisFile() {
-	genesisContents := coordinator.Downloader.DownloadGenesisFile(coordinator.ChainName)
+func (coordinator Coordinator) downloadGenesisFile(info types.ChainInfo) {
+	genesisContents := coordinator.Downloader.DownloadGenesisFile(info)
 
 	// Create the config folder
 	configFolderPath := fmt.Sprintf("%s/.%s/config", utils.GetUserHome(), coordinator.Application.DaemonName)
@@ -75,7 +73,7 @@ func (coordinator Coordinator) resetDaemonFolder() {
 	fmt.Println("===> Removed the existing node data")
 }
 
-func (coordinator Coordinator) setupConfigTomlFile() {
+func (coordinator Coordinator) setupConfigTomlFile(info types.ChainInfo) {
 	fmt.Println("===> Writing config.toml")
 
 	// Get the config.toml file path
@@ -87,11 +85,8 @@ func (coordinator Coordinator) setupConfigTomlFile() {
 	configContents, err := ioutil.ReadFile(configTomlFilePath)
 	utils.CheckError(err)
 
-	// Get the seeds
-	seeds := coordinator.Downloader.GetSeeds(coordinator.ChainName)
-
 	// Replace the seeds inside the config.toml file
-	seedsValue := fmt.Sprintf("seeds = \"%s\"", seeds)
+	seedsValue := fmt.Sprintf("seeds = \"%s\"", info.Seeds)
 	configContentsWithSeeds := strings.ReplaceAll(string(configContents), "seeds = \"\"", seedsValue)
 
 	// Write the contents back into the file

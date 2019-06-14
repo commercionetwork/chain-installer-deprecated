@@ -1,14 +1,52 @@
 package implementation
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/commercionetwork/chain-installer/apis"
 	"github.com/commercionetwork/chain-installer/types"
 	"github.com/commercionetwork/chain-installer/utils"
 	otiai10copy "github.com/otiai10/copy"
 	"os"
+	"regexp"
 	"runtime"
+	"strings"
 )
+
+func (downloader GithubBasedDownloader) readDataFileLines(contents string) types.ChainInfo {
+
+	var chainInfo types.ChainInfo
+
+	// Start reading from the file with a reader.
+	reader := bufio.NewReader(strings.NewReader(contents))
+
+	for {
+		line, err := reader.ReadString('\n')
+		parts := regexp.MustCompile("\\s{2,}").Split(line, 2)
+
+		if len(parts) == 2 {
+			value := strings.TrimSpace(parts[1])
+
+			if contains(parts[0], "release") {
+				chainInfo.ReleaseTag = value
+			} else if contains(parts[0], "seeds") {
+				chainInfo.Seeds = value
+			} else if contains(parts[0], "genesis") && contains(parts[0], "checksum") {
+				chainInfo.GenesisChecksum = value
+			}
+		}
+
+		if err != nil {
+			break
+		}
+	}
+
+	return chainInfo
+}
+
+func contains(original, search string) bool {
+	return strings.Contains(strings.ToLower(original), strings.ToLower(search))
+}
 
 func (downloader GithubBasedDownloader) getAssetsInfo(releaseVersion types.FileData) (string, types.Asset) {
 	fmt.Println("====> Getting the .release file")
@@ -25,22 +63,22 @@ func (downloader GithubBasedDownloader) getAssetsInfo(releaseVersion types.FileD
 		downloader.ApiInfo.ExecutablesRepository.RepoName)
 
 	// Get the releases list
-	var releases []types.Release
+	var releases types.Releases
 	apis.GetUrlContents(releaseApiPath, &releases)
 
 	// Find the release with the given tag name
-	release := utils.FindReleaseByTagName(releases, tagName)
+	release := releases.FindByTagName(tagName)
 
 	// Get the asset representing the zip file inside which there are the executables for the given OS and Architecture
 	zipName := fmt.Sprintf("%s-%s.zip", runtime.GOOS, runtime.GOARCH)
 	fmt.Println(fmt.Sprintf("====> Searching the asset with name %s inside release %s", zipName, tagName))
 
-	asset := utils.FindReleaseAssetByName(release.Assets, zipName)
+	asset := release.Assets.FindByName(zipName)
 
 	return zipName, asset
 }
 
-func (downloader GithubBasedDownloader) downloadFiles(zipName string, asset types.Asset) string {
+func (downloader GithubBasedDownloader) downloadFiles(asset types.Asset, zipName string) string {
 	fmt.Println("====> Downloading the executable files")
 
 	// Download the asset inside the installation directory
@@ -72,9 +110,9 @@ func cleanupInstallationFiles(downloadPath string, downloadedFolderPath string) 
 	fmt.Println("====> Performing cleanup")
 
 	// Delete the useless folders
-	err := os.Remove(downloadPath)
+	err := os.RemoveAll(downloadPath)
 	utils.CheckError(err)
 
-	err = os.Remove(downloadedFolderPath)
+	err = os.RemoveAll(downloadedFolderPath)
 	utils.CheckError(err)
 }

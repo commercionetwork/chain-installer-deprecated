@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/commercionetwork/chain-installer/implementation"
 	"github.com/commercionetwork/chain-installer/interfaces"
 	"github.com/commercionetwork/chain-installer/types"
@@ -9,11 +10,13 @@ import (
 	"github.com/manifoldco/promptui"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
 func main() {
 
+	// =========================
 	// === Build the ApiInfo ===
 	apiInfo := types.ApiInfo{
 		ExecutablesRepository: types.ExecutablesRepoInfo{
@@ -27,7 +30,9 @@ func main() {
 		},
 	}
 
+	// =========================================
 	// === Ask the user to select a chain id ===
+
 	explorer := implementation.GithubVersionsExplorer{
 		ApiInfo: apiInfo,
 	}
@@ -35,9 +40,18 @@ func main() {
 
 	// === Ask the user where to install the things ===
 	installationDir := getInstallationDirectory()
-	installationDir = utils.ReplaceLast(installationDir, "/", "")
 
+	// Get the absolute path to the installation dir
+	installationDir, err := filepath.Abs(installationDir)
+	utils.CheckError(err)
+
+	// Create the installation dir if it does not exist
+	err = os.MkdirAll(installationDir, os.ModePerm)
+	utils.CheckError(err)
+
+	// =============================
 	// === Build the coordinator ===
+
 	application := types.Application{
 		DaemonName: "cnd",
 	}
@@ -53,10 +67,15 @@ func main() {
 		},
 	}
 
+	// =========================
 	// === Download the data ===
-	coordinator.PerformChainDownloadAndSetup()
 
+	coordinator.PerformChainDownloadAndSetup()
+	fmt.Println(fmt.Sprintf("Software installed into %s", installationDir))
+
+	// =============================================
 	// === Ask the user to start the node or not ===
+
 	if askStartCnd() {
 		cmd := exec.Command(installationDir+"/cnd", "start")
 		cmd.Stdout = os.Stdout

@@ -1,9 +1,15 @@
 package implementation
 
 import (
+	sha2562 "crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/commercionetwork/chain-installer/apis"
 	"github.com/commercionetwork/chain-installer/types"
+	"github.com/commercionetwork/chain-installer/utils"
+	"io"
+	"strings"
 )
 
 type GithubBasedDownloader struct {
@@ -21,36 +27,60 @@ func (downloader GithubBasedDownloader) getReleaseFolder(chainName string) strin
 		chainName)
 }
 
-func (downloader GithubBasedDownloader) DownloadGenesisFile(chainName string) string {
+func (downloader GithubBasedDownloader) GetChainInfo(chainName string) types.ChainInfo {
+	// Get the URL where to find the .data file
+	dataRemotePath := fmt.Sprintf("%s/.data", downloader.getReleaseFolder(chainName))
+
+	// Download the seeds data
+	var seedsData types.FileData
+	apis.GetUrlContents(dataRemotePath, &seedsData)
+	dataFileContents := apis.GetUrlContentsAsString(seedsData.DownloadUrl)
+
+	// Parse the .data file content into a types.ChainInfo object
+	chainInfo := downloader.readDataFileLines(dataFileContents)
+	chainInfo.ChainName = chainName
+
+	err := chainInfo.CheckValidity()
+	utils.CheckError(err)
+
+	return chainInfo
+}
+
+func (downloader GithubBasedDownloader) DownloadGenesisFile(info types.ChainInfo) string {
 	fmt.Println("===> Getting the proper genesis file")
 
 	// Get the genesis file information
-	genesisRemotePath := fmt.Sprintf("%s/genesis.json", downloader.getReleaseFolder(chainName))
+	genesisRemotePath := fmt.Sprintf("%s/genesis.json", downloader.getReleaseFolder(info.ChainName))
 
 	var genesisData types.FileData
 	apis.GetUrlContents(genesisRemotePath, &genesisData)
 
+	// Download the genesis.json file contents
 	fmt.Println("===> Downloading the genesis file")
-	return apis.GetUrlContentsAsString(genesisData.DownloadUrl)
+	genesisContents := apis.GetUrlContentsAsString(genesisData.DownloadUrl)
+
+	// Check the validity of the contents
+	hash := sha2562.New()
+	_, err := io.Copy(hash, strings.NewReader(genesisContents))
+	utils.CheckError(err)
+
+	sha256 := sha2562.Sum256([]byte(genesisContents))
+	hexString := hex.EncodeToString(sha256[:])
+
+	if hexString != info.GenesisChecksum {
+		message := fmt.Sprintf("genesis.json checksum does not match downloaded genesis.json SHA256. Required %s but got %s instead",
+			info.GenesisChecksum, hexString)
+		panic(errors.New(message))
+	}
+
+	return genesisContents
 }
 
-func (downloader GithubBasedDownloader) GetSeeds(chainName string) string {
-	fmt.Println("===> Downloading the seeds")
-
-	// Get the URL where to find the .seeds file
-	seedsRemotePath := fmt.Sprintf("%s/.seeds", downloader.getReleaseFolder(chainName))
-
-	// Download the seeds data
-	var seedsData types.FileData
-	apis.GetUrlContents(seedsRemotePath, &seedsData)
-	return apis.GetUrlContentsAsString(seedsData.DownloadUrl)
-}
-
-func (downloader GithubBasedDownloader) DownloadExecutable(chainName string, installationDir string) {
+func (downloader GithubBasedDownloader) DownloadExecutable(info types.ChainInfo, installationDir string) {
 	fmt.Println("===> Downloading the chain executable")
 
 	// Get the release version information
-	releaseFileRemotePath := fmt.Sprintf("%s/.release", downloader.getReleaseFolder(chainName))
+	releaseFileRemotePath := fmt.Sprintf("%s/.release", downloader.getReleaseFolder(info.ChainName))
 
 	var releaseVersion types.FileData
 	apis.GetUrlContents(releaseFileRemotePath, &releaseVersion)
@@ -59,13 +89,13 @@ func (downloader GithubBasedDownloader) DownloadExecutable(chainName string, ins
 	zipName, asset := downloader.getAssetsInfo(releaseVersion)
 
 	// === STEP 2 ===
-	downloadPath := downloader.downloadFiles(zipName, asset)
+	downloadPath := downloader.downloadFiles(asset, zipName)
 
 	// === STEP 3 ===
-	downloader.unzipAndSetup(downloadPath, asset)
+	downloadedFolderPath := downloader.unzipAndSetup(downloadPath, asset)
 
 	// === STEP 4 ===
-	//cleanupInstallationFiles(downloadPath, downloadedFolderPath)
+	cleanupInstallationFiles(downloadPath, downloadedFolderPath)
 
 	// === STEP 5 ===
 	fmt.Println("===> Executable downloaded successfully")
